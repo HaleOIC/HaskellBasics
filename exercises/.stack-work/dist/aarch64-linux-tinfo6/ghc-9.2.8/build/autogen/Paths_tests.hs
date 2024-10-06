@@ -42,12 +42,12 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
-bindir     = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/bin"
-libdir     = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/lib/aarch64-linux-ghc-9.2.8/tests-0.0.1-409rslOM85jJdNvoEvwqzu"
-dynlibdir  = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/lib/aarch64-linux-ghc-9.2.8"
-datadir    = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/share/aarch64-linux-ghc-9.2.8/tests-0.0.1"
-libexecdir = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/libexec/aarch64-linux-ghc-9.2.8/tests-0.0.1"
-sysconfdir = "/home/hale/haskell-mooc/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/etc"
+bindir     = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/bin"
+libdir     = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/lib/aarch64-linux-ghc-9.2.8/tests-0.0.1-409rslOM85jJdNvoEvwqzu"
+dynlibdir  = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/lib/aarch64-linux-ghc-9.2.8"
+datadir    = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/share/aarch64-linux-ghc-9.2.8/tests-0.0.1"
+libexecdir = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/libexec/aarch64-linux-ghc-9.2.8/tests-0.0.1"
+sysconfdir = "/home/hale/HaskellBasics/exercises/.stack-work/install/aarch64-linux-tinfo6/694ec16bacfea87366e0e06620c8a6247c78a538654ae160c2235b97c4a669d4/9.2.8/etc"
 
 getBinDir     = catchIO (getEnv "tests_bindir")     (\_ -> return bindir)
 getLibDir     = catchIO (getEnv "tests_libdir")     (\_ -> return libdir)
