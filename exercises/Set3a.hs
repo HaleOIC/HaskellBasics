@@ -2,7 +2,6 @@
 --
 --  * lists
 --  * functional programming
-
 module Set3a where
 
 import Mooc.Todo
@@ -26,9 +25,11 @@ import Data.List
 --  maxBy (*2)   3       5      ==>  5
 --  maxBy length [1,2,3] [4,5]  ==>  [1,2,3]
 --  maxBy head   [1,2,3] [4,5]  ==>  [4,5]
-
 maxBy :: (a -> Int) -> a -> a -> a
-maxBy measure a b = todo
+maxBy measure a b =
+  if (measure a) > (measure b)
+    then a
+    else b
 
 ------------------------------------------------------------------------------
 -- Ex 2: implement the function mapMaybe that takes a function and a
@@ -38,9 +39,11 @@ maxBy measure a b = todo
 -- Examples:
 --   mapMaybe length Nothing      ==> Nothing
 --   mapMaybe length (Just "abc") ==> Just 3
-
 mapMaybe :: (a -> b) -> Maybe a -> Maybe b
-mapMaybe f x = todo
+mapMaybe f x =
+  case x of
+    Just val -> Just (f val)
+    Nothing -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the function mapMaybe2 that works like mapMaybe
@@ -52,9 +55,11 @@ mapMaybe f x = todo
 --   mapMaybe2 div (Just 6) (Just 3)  ==>  Just 2
 --   mapMaybe2 div Nothing  (Just 3)  ==>  Nothing
 --   mapMaybe2 div (Just 6) Nothing   ==>  Nothing
-
 mapMaybe2 :: (a -> b -> c) -> Maybe a -> Maybe b -> Maybe c
-mapMaybe2 f x y = todo
+mapMaybe2 f x y =
+  case (x, y) of
+    (Just v1, Just v2) -> Just (f v1 v2)
+    _ -> Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: define the functions firstHalf and palindrome so that
@@ -72,13 +77,14 @@ mapMaybe2 f x y = todo
 -- annotations.
 --
 -- Note! Do not change the definition of palindromeHalfs
-
 palindromeHalfs :: [String] -> [String]
 palindromeHalfs xs = map firstHalf (filter palindrome xs)
 
-firstHalf = todo
+firstHalf :: String -> String
+firstHalf str = take ((length str + 1) `div` 2) str
 
-palindrome = todo
+palindrome :: String -> Bool
+palindrome str = str == reverse str
 
 ------------------------------------------------------------------------------
 -- Ex 5: Implement a function capitalize that takes in a string and
@@ -94,9 +100,12 @@ palindrome = todo
 --
 -- Example:
 --   capitalize "goodbye cruel world" ==> "Goodbye Cruel World"
+capitalizeFirst :: String -> String
+capitalizeFirst [] = []
+capitalizeFirst (c:cs) = toUpper c : cs
 
 capitalize :: String -> String
-capitalize = todo
+capitalize = unwords . map capitalizeFirst . words
 
 ------------------------------------------------------------------------------
 -- Ex 6: powers k max should return all the powers of k that are less
@@ -111,9 +120,8 @@ capitalize = todo
 -- Hints:
 --   * k^max > max
 --   * the function takeWhile
-
 powers :: Int -> Int -> [Int]
-powers k max = todo
+powers k max = takeWhile (\x -> x <= max) (iterate (* k) 1)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a functional while loop. While should be a function
@@ -134,9 +142,11 @@ powers k max = todo
 --       check _ = True
 --   in while check tail "xyzAvvt"
 --     ==> Avvt
-
-while :: (a->Bool) -> (a->a) -> a -> a
-while check update value = todo
+while :: (a -> Bool) -> (a -> a) -> a -> a
+while check update value =
+  case check value of
+    True -> while check update (update value)
+    False -> value
 
 ------------------------------------------------------------------------------
 -- Ex 8: another version of a while loop. This time, the check
@@ -154,19 +164,24 @@ while check update value = todo
 --   whileRight bomb 7         ==> "BOOM"
 --
 -- Hint! Remember the case-of expression from lecture 2.
-
 whileRight :: (a -> Either b a) -> a -> b
-whileRight check x = todo
+whileRight check x =
+  case check x of
+    Right val -> whileRight check val
+    Left val -> val
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
 step :: Int -> Int -> Either Int Int
-step k x = if x<k then Right (2*x) else Left x
+step k x =
+  if x < k
+    then Right (2 * x)
+    else Left x
 
 -- bomb x implements a countdown: it returns x-1 or "BOOM" if x was 0
 bomb :: Int -> Either String Int
 bomb 0 = Left "BOOM"
-bomb x = Right (x-1)
+bomb x = Right (x - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 9: given a list of strings and a length, return all strings that
@@ -178,9 +193,8 @@ bomb x = Right (x-1)
 --   joinToLength 5 ["a","b","cd","def"]  ==> ["cddef","defcd"]
 --
 -- Hint! This is a great use for list comprehensions
-
 joinToLength :: Int -> [String] -> [String]
-joinToLength = todo
+joinToLength len strs = [x ++ y | x <- strs, y <- strs, length (x ++ y) == len]
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the operator +|+ that returns a list with the first
@@ -190,10 +204,16 @@ joinToLength = todo
 -- with the parentheses because +|+ is an infix operator.
 --
 -- Examples:
---   [1,2,3] +|+ [4,5,6]  ==> [1,4]
+--   [1,2,3] +|+ [4,5,6]  ==> [1,4] 
 --   [] +|+ [True]        ==> [True]
 --   [] +|+ []            ==> []
-
+(+|+) :: [a] -> [a] -> [a]
+(+|+) val1s val2s =
+  case (val1s, val2s) of
+    (x:xs, y:ys) -> [x, y]
+    ([], y:ys) -> [y]
+    (x:xs, []) -> [x]
+    ([], []) -> []
 
 ------------------------------------------------------------------------------
 -- Ex 11: remember the lectureParticipants example from Lecture 2? We
@@ -208,9 +228,8 @@ joinToLength = todo
 -- Examples:
 --   sumRights [Right 1, Left "bad value", Right 2]  ==>  3
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
-
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights vals = sum $ map (either (const 0) id) vals
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -225,8 +244,10 @@ sumRights = todo
 --   multiCompose [reverse, tail, (++"bar")] "foo" ==> "raboo"
 --   multiCompose [(3*), (2^), (+1)] 0 ==> 6
 --   multiCompose [(+1), (2^), (3*)] 0 ==> 2
-
-multiCompose fs = todo
+multiCompose fs =
+  case fs of
+    [] -> id
+    (f:fs) -> f . (multiCompose fs)
 
 ------------------------------------------------------------------------------
 -- Ex 13: let's consider another way to compose multiple functions. Given
@@ -246,8 +267,8 @@ multiCompose fs = todo
 --   multiApp concat [take 3, reverse] "race" ==> "racecar"
 --   multiApp id [head, (!!2), last] "axbxc" ==> ['a','b','c'] i.e. "abc"
 --   multiApp sum [head, (!!2), last] [1,9,2,9,3] ==> 6
-
-multiApp = todo
+multiApp :: ([b] -> c) -> [(a -> b)] -> a -> c
+multiApp f gs val = f (map ($ val) gs)
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -280,6 +301,16 @@ multiApp = todo
 -- The suprise will only work if you generate the return list directly
 -- using (:). If you build the list in an argument to a helper
 -- function, the surprise won't work. See section 3.8 in the material.
-
 interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter commands = interpreterHelper commands 0 0
+
+interpreterHelper :: [String] -> Int -> Int -> [String]
+interpreterHelper [] _ _ = []
+interpreterHelper (cmd:cmds) x y =
+  case cmd of
+    "right" -> interpreterHelper cmds (x + 1) y
+    "left" -> interpreterHelper cmds (x - 1) y
+    "up" -> interpreterHelper cmds x (y + 1)
+    "down" -> interpreterHelper cmds x (y - 1)
+    "printX" -> show x : interpreterHelper cmds x y
+    "printY" -> show y : interpreterHelper cmds x y
