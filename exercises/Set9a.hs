@@ -7,7 +7,6 @@
 -- You can also play around with your answers in GHCi with
 --
 --   stack ghci Set9a.hs
-
 module Set9a where
 
 import Data.Char
@@ -24,9 +23,15 @@ import Mooc.Todo
 -- If the total number of hours needed for all exercises is over 100,
 -- return "Holy moly!" if it is under 10, return "Piece of cake!".
 -- Otherwise return "Ok."
-
 workload :: Int -> Int -> String
-workload nExercises hoursPerExercise = todo
+workload nExercises hoursPerExercise =
+  if hours < 10
+    then "Piece of cake!"
+    else if hours > 100
+           then "Holy moly!"
+           else "Ok."
+  where
+    hours = nExercises * hoursPerExercise
 
 ------------------------------------------------------------------------------
 -- Ex 2: Implement the function echo that builds a string like this:
@@ -37,9 +42,9 @@ workload nExercises hoursPerExercise = todo
 --   echo "" ==> ""
 --
 -- Hint: use recursion
-
 echo :: String -> String
-echo = todo
+echo "" = ""
+echo (c:cs) = (c : cs) ++ ", " ++ echo (cs)
 
 ------------------------------------------------------------------------------
 -- Ex 3: A country issues some banknotes. The banknotes have a serial
@@ -50,9 +55,18 @@ echo = todo
 --
 -- Given a list of bank note serial numbers (strings), count how many
 -- are valid.
-
 countValid :: [String] -> Int
-countValid = todo
+countValid [] = 0
+countValid (str:strs) =
+  let restCount = countValid (strs)
+   in if helper str
+        then 1 + restCount
+        else restCount
+  where
+    helper str =
+      if length str < 6
+        then False
+        else (str !! 2 == str !! 4) || (str !! 3 == str !! 5)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Find the first element that repeats two or more times _in a
@@ -62,9 +76,13 @@ countValid = todo
 --   repeated [1,2,3] ==> Nothing
 --   repeated [1,2,2,3,3] ==> Just 2
 --   repeated [1,2,1,2,3,3] ==> Just 3
-
 repeated :: Eq a => [a] -> Maybe a
-repeated = todo
+repeated [] = Nothing
+repeated [x] = Nothing
+repeated (x:y:xs) =
+  if x == y
+    then Just x
+    else repeated (y : xs)
 
 ------------------------------------------------------------------------------
 -- Ex 5: A laboratory has been collecting measurements. Some of the
@@ -84,9 +102,14 @@ repeated = todo
 --     ==> Left "no data"
 --   sumSuccess []
 --     ==> Left "no data"
-
 sumSuccess :: [Either String Int] -> Either String Int
-sumSuccess = todo
+sumSuccess [] = Left "no data"
+sumSuccess (x:xs) =
+  let sumRest = sumSuccess (xs)
+   in case (x, sumRest) of
+        (Left _, _) -> sumRest
+        (Right val, Left _) -> x
+        (Right lval, Right rval) -> Right (lval + rval)
 
 ------------------------------------------------------------------------------
 -- Ex 6: A combination lock can either be open or closed. The lock
@@ -107,31 +130,39 @@ sumSuccess = todo
 --   isOpen (open "0000" (changeCode "0000" aLock)) ==> False
 --   isOpen (open "0000" (lock (changeCode "0000" (open "1234" aLock)))) ==> True
 --   isOpen (open "1234" (lock (changeCode "0000" (open "1234" aLock)))) ==> False
-
-data Lock = LockUndefined
-  deriving Show
+data Lock
+  = Locked String
+  | Open String
+  deriving (Show)
 
 -- aLock should be a locked lock with the code "1234"
 aLock :: Lock
-aLock = todo
+aLock = Locked "1234"
 
 -- isOpen returns True if the lock is open
 isOpen :: Lock -> Bool
-isOpen = todo
+isOpen (Open _) = True
+isOpen (Locked _) = False
 
 -- open tries to open the lock with the given code. If the code is
 -- wrong, nothing happens.
 open :: String -> Lock -> Lock
-open = todo
+open _ (Open ori) = Open ori
+open pwd (Locked ori) =
+  if pwd == ori
+    then Open ori
+    else Locked ori
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
 lock :: Lock -> Lock
-lock = todo
+lock (Open ori) = Locked ori
+lock (Locked ori) = Locked ori
 
 -- changeCode changes the code of an open lock. If the lock is closed,
 -- nothing happens.
 changeCode :: String -> Lock -> Lock
-changeCode = todo
+changeCode ncode (Open ori) = Open ncode
+changeCode _ (Locked ori) = Locked ori
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here's a type Text that just wraps a String. Implement an Eq
@@ -145,10 +176,17 @@ changeCode = todo
 --   Text "a bc" == Text "ab  c\n"  ==> True
 --   Text "abc"  == Text "abcd"     ==> False
 --   Text "a bc" == Text "ab  d\n"  ==> False
+data Text =
+  Text String
+  deriving (Show)
 
-data Text = Text String
-  deriving Show
-
+instance Eq Text where
+  (Text s1) == (Text s2) = helper s1 == helper s2
+    where
+      helper [] = []
+      helper (c:cs)
+        | isSpace c = helper cs
+        | otherwise = toLower c : helper cs
 
 ------------------------------------------------------------------------------
 -- Ex 8: We can represent functions or mappings as lists of pairs.
@@ -180,9 +218,8 @@ data Text = Text String
 --   a more complex example: note how "omicron" and "c" are ignored
 --     compose [("a","alpha"),("b","beta"),("c","gamma")] [("alpha",1),("beta",2),("omicron",15)]
 --       ==> [("a",1),("b",2)]
-
-compose :: (Eq a, Eq b) => [(a,b)] -> [(b,c)] -> [(a,c)]
-compose = todo
+compose :: (Eq a, Eq b) => [(a, b)] -> [(b, c)] -> [(a, c)]
+compose f g = [(a, c) | (a, b) <- f, Just c <- [lookup b g]]
 
 ------------------------------------------------------------------------------
 -- Ex 9: Reorder a list using a list of indices.
@@ -212,7 +249,6 @@ compose = todo
 --   permute [0, 2, 1] (permute [1, 0, 2] [9,3,5]) ==> [3,5,9]
 --   permute ([1, 0, 2] `multiply` [0, 2, 1]) [9,3,5] ==> [5,9,3]
 --   permute ([0, 2, 1] `multiply` [1, 0, 2]) [9,3,5] ==> [3,5,9]
-
 -- A type alias for index lists.
 type Permutation = [Int]
 
@@ -226,4 +262,7 @@ multiply :: Permutation -> Permutation -> Permutation
 multiply p q = map (\i -> p !! (q !! i)) (identity (length p))
 
 permute :: Permutation -> [a] -> [a]
-permute = todo
+permute indices xs =
+  let tuples = map (\i -> (indices !! i, xs !! i)) indices
+      sorted = sortBy (\(x1, _) (x2, _) -> compare x1 x2) tuples
+   in map (\(index, char) -> char) sorted
