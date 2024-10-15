@@ -1,12 +1,11 @@
 module Set12 where
 
-import Data.Functor
 import Data.Foldable
+import Data.Functor
 import Data.List
 import Data.Monoid
 
 import Mooc.Todo
-
 
 ------------------------------------------------------------------------------
 -- Ex 1: Implement the function incrementAll that takes a functor
@@ -15,9 +14,8 @@ import Mooc.Todo
 -- Examples:
 --   incrementAll [1,2,3]     ==>  [2,3,4]
 --   incrementAll (Just 3.0)  ==>  Just 4.0
-
 incrementAll :: (Functor f, Num n) => f n -> f n
-incrementAll x = todo
+incrementAll = fmap (+ 1)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Sometimes one wants to fmap multiple levels deep. Implement
@@ -36,12 +34,12 @@ incrementAll x = todo
 --   fmap3 on Maybe [Maybe Bool]
 --     fmap3 not (Just [Just False, Nothing])
 --       ==> Just [Just True,Nothing]
-
 fmap2 :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
-fmap2 = todo
+fmap2 = fmap . fmap
 
-fmap3 :: (Functor f, Functor g, Functor h) => (a -> b) -> f (g (h a)) -> f (g (h b))
-fmap3 = todo
+fmap3 ::
+     (Functor f, Functor g, Functor h) => (a -> b) -> f (g (h a)) -> f (g (h b))
+fmap3 = fmap . fmap . fmap
 
 ------------------------------------------------------------------------------
 -- Ex 3: below you'll find a type Result that works a bit like Maybe,
@@ -49,12 +47,16 @@ fmap3 = todo
 -- without an error description.
 --
 -- Implement the instance Functor Result
-
-data Result a = MkResult a | NoResult | Failure String
-  deriving Show
+data Result a
+  = MkResult a
+  | NoResult
+  | Failure String
+  deriving (Show)
 
 instance Functor Result where
-  fmap f result = todo
+  fmap f (MkResult a) = MkResult (f a)
+  fmap f NoResult = NoResult
+  fmap f (Failure str) = Failure str
 
 ------------------------------------------------------------------------------
 -- Ex 4: Here's a reimplementation of the Haskell list type. You might
@@ -63,11 +65,14 @@ instance Functor Result where
 -- Example:
 --   fmap (+2) (LNode 0 (LNode 1 (LNode 2 Empty)))
 --     ==> LNode 2 (LNode 3 (LNode 4 Empty))
-
-data List a = Empty | LNode a (List a)
-  deriving Show
+data List a
+  = Empty
+  | LNode a (List a)
+  deriving (Show)
 
 instance Functor List where
+  fmap f Empty = Empty
+  fmap f (LNode val list) = LNode (f val) (fmap f list)
 
 ------------------------------------------------------------------------------
 -- Ex 5: Here's another list type. This time every node contains two
@@ -77,11 +82,14 @@ instance Functor List where
 -- Example:
 --   fmap (+2) (TwoNode 0 1 (TwoNode 2 3 TwoEmpty))
 --     ==> TwoNode 2 3 (TwoNode 4 5 TwoEmpty)
-
-data TwoList a = TwoEmpty | TwoNode a a (TwoList a)
-  deriving Show
+data TwoList a
+  = TwoEmpty
+  | TwoNode a a (TwoList a)
+  deriving (Show)
 
 instance Functor TwoList where
+  fmap f TwoEmpty = TwoEmpty
+  fmap f (TwoNode v1 v2 list) = TwoNode (f v1) (f v2) (fmap f list)
 
 ------------------------------------------------------------------------------
 -- Ex 6: Count all occurrences of a given element inside a Foldable.
@@ -92,9 +100,14 @@ instance Functor TwoList where
 -- Examples:
 --   count True [True,False,True] ==> 2
 --   count 'c' (Just 'c') ==> 1
-
 count :: (Eq a, Foldable f) => a -> f a -> Int
-count = todo
+count x =
+  foldr
+    (\y acc ->
+       if y == x
+         then acc + 1
+         else acc)
+    0
 
 ------------------------------------------------------------------------------
 -- Ex 7: Return all elements that are in two Foldables, as a list.
@@ -103,9 +116,11 @@ count = todo
 --   inBoth "abcd" "fobar" ==> "ab"
 --   inBoth [1,2] (Just 2) ==> [2]
 --   inBoth Nothing [3]    ==> []
-
 inBoth :: (Foldable f, Foldable g, Eq a) => f a -> g a -> [a]
-inBoth = todo
+inBoth xs ys = filter (`elem` ylist) xlist
+  where
+    ylist = toList xs
+    xlist = toList ys
 
 ------------------------------------------------------------------------------
 -- Ex 8: Implement the instance Foldable List.
@@ -116,9 +131,9 @@ inBoth = todo
 -- After defining the instance, you'll be able to compute:
 --   sum (LNode 1 (LNode 2 (LNode 3 Empty)))    ==> 6
 --   length (LNode 1 (LNode 2 (LNode 3 Empty))) ==> 3
-
 instance Foldable List where
-  foldr = todo
+  foldr _ z Empty = z
+  foldr f z (LNode val list) = f val (foldr f z list)
 
 ------------------------------------------------------------------------------
 -- Ex 9: Implement the instance Foldable TwoList.
@@ -126,9 +141,9 @@ instance Foldable List where
 -- After defining the instance, you'll be able to compute:
 --   sum (TwoNode 0 1 (TwoNode 2 3 TwoEmpty))    ==> 6
 --   length (TwoNode 0 1 (TwoNode 2 3 TwoEmpty)) ==> 4
-
 instance Foldable TwoList where
-  foldr = todo
+  foldr _ z TwoEmpty = z
+  foldr f z (TwoNode v1 v2 list) = f v1 (f v2 (foldr f z list))
 
 ------------------------------------------------------------------------------
 -- Ex 10: (Tricky!) Fun a is a type that wraps a function Int -> a.
@@ -136,13 +151,14 @@ instance Foldable TwoList where
 --
 -- Figuring out what the Functor instance should do is most of the
 -- puzzle.
-
-data Fun a = Fun (Int -> a)
+data Fun a =
+  Fun (Int -> a)
 
 runFun :: Fun a -> Int -> a
 runFun (Fun f) x = f x
 
 instance Functor Fun where
+  fmap f (Fun g) = Fun (f . g)
 
 ------------------------------------------------------------------------------
 -- Ex 11: (Tricky!) You'll find the binary tree type from Set 5b
@@ -194,19 +210,21 @@ instance Functor Fun where
 --      2     5     ====>  1 2 3 4 5 6
 --     / \     \
 --    1   3     6
-
-data Tree a = Leaf | Node a (Tree a) (Tree a)
-  deriving Show
+data Tree a
+  = Leaf
+  | Node a (Tree a) (Tree a)
+  deriving (Show)
 
 instance Functor Tree where
-  fmap = todo
+  fmap f Leaf = Leaf
+  fmap f (Node v1 lb rb) = Node (f v1) (fmap f lb) (fmap f rb)
 
 sumTree :: Monoid m => Tree m -> m
-sumTree = todo
+sumTree Leaf = mempty
+sumTree (Node a lb rb) = sumTree lb <> a <> sumTree rb
 
 instance Foldable Tree where
   foldMap f t = sumTree (fmap f t)
-
 ------------------------------------------------------------------------------
 -- Bonus! If you enjoyed the two last exercises (not everybody will),
 -- you'll like the `loeb` function:
