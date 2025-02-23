@@ -1,0 +1,69 @@
+# Stack working directory and lock file
+.stack-work/
+stack.yaml.lock
+
+# Cabal related
+dist/
+dist-newstyle/
+.cabal-sandbox/
+cabal.sandbox.config
+cabal.project.local
+.ghc.environment.*
+
+# Haskell compilation artifacts
+*.hi
+*.o
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+*.prof
+*.aux
+*.hp
+*.eventlog
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Binary files
+*.exe
+*.out
+*.app
+
+# Project specific binary
+# Replace with your project name
+# project-name
+
+# Log files
+*.log
+
+# Local configuration
+config.local.yml
+
+# Haskell Language Server
+.hie/
+*.hie
+
+# Temporary files
+.temp/
+tmp/
+
+# Test coverage reports
+.hpc/
+*.tix
+
+# Documentation
+docs/_build/
