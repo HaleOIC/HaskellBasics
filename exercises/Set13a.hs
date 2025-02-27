@@ -27,39 +27,44 @@ import Examples.Bank
 -- functions split, checkNumber and checkCapitals so that readNames
 -- works correctly.
 (?>) :: Maybe a -> (a -> Maybe b) -> Maybe b
-Nothing ?> _ = Nothing -- In case of failure, propagate failure
-Just x ?> f = f x -- In case of success, run the next computation
+Nothing ?> _ = Nothing   -- In case of failure, propagate failure
+Just x  ?> f = f x       -- In case of success, run the next computation
 
 -- DO NOT touch this definition!
-readNames :: String -> Maybe (String, String)
-readNames s = split s ?> checkNumber ?> checkCapitals
+readNames :: String -> Maybe (String,String)
+readNames s =
+  split s
+  ?>
+  checkNumber
+  ?>
+  checkCapitals
 
 -- split should split a string into two words. If the input doesn't
 -- contain a space, Nothing should be returned
 --
 -- (NB! There are obviously other corner cases like the inputs " " and
 -- "a b c", but you don't need to worry about those here)
-split :: String -> Maybe (String, String)
-split str =
-  case words str of
-    [first, second] -> Just (first, second)
+split :: String -> Maybe (String,String)
+split str = 
+  case words str of 
+    [fir, sur] -> Just (fir, sur)
     _ -> Nothing
 
 -- checkNumber should take a pair of two strings and return them
 -- unchanged if they don't contain numbers. Otherwise Nothing is
 -- returned.
 checkNumber :: (String, String) -> Maybe (String, String)
-checkNumber (first, second)
-  | any isDigit first || any isDigit second = Nothing
-  | otherwise = Just (first, second)
+checkNumber (fir, sur)
+  | any isDigit fir || any isDigit sur = Nothing 
+  | otherwise = Just (fir, sur)
 
 -- checkCapitals should take a pair of two strings and return them
 -- unchanged if both start with a capital letter. Otherwise Nothing is
 -- returned.
 checkCapitals :: (String, String) -> Maybe (String, String)
-checkCapitals (for, sur)
-  | isUpper (head for) && isUpper (head sur) = Just (for, sur)
-  | otherwise = Nothing
+checkCapitals (fir, sur)
+  | (isUpper $ head fir) && (isUpper $ head sur) = Just (fir, sur)
+  | otherwise = Nothing  
 
 ------------------------------------------------------------------------------
 -- Ex 2: Given a list of players and their scores (as [(String,Int)]),
@@ -84,13 +89,18 @@ checkCapitals (for, sur)
 --     ==> Nothing
 --   winner [("a",1),("b",1)] "a" "b"
 --     ==> Just "a"
-winner :: [(String, Int)] -> String -> String -> Maybe String
-winner scores player1 player2 = do
-  score1 <- lookup player1 scores
-  score2 <- lookup player2 scores
-  if score1 >= score2
-    then Just player1
-    else Just player2
+
+winner :: [(String,Int)] -> String -> String -> Maybe String
+-- ?> chainning
+winner scores player1 player2 = 
+  lookup player1 scores ?> 
+  (\score1 -> lookup player2 scores ?>
+    (\score2 -> if score1 >= score2 then Just player1 else Just player2))
+-- do-notation
+-- winner scores player1 player2 = do 
+--   score1 <- lookup player1 scores 
+--   score2 <- lookup player2 scores
+--   return $ if score1 >= score2 then player1 else player2
 
 ------------------------------------------------------------------------------
 -- Ex 3: given a list of indices and a list of values, return the sum
@@ -107,17 +117,27 @@ winner scores player1 player2 = do
 --  selectSum [0..10] [4,6,9,20]
 --    Nothing
 selectSum :: Num a => [a] -> [Int] -> Maybe a
-selectSum xs [] = Just 0
-selectSum xs (id:ids) = do
-  rest <- selectSum xs ids
-  val <- safeIndex xs id
-  return (val + rest)
-
-safeIndex :: [a] -> Int -> Maybe a
-safeIndex xs idx =
-  if idx >= 0 && idx < length xs
-    then Just (xs !! idx)
-    else Nothing
+selectSum xs is = do 
+  values <- mapM (safeIndex xs) is 
+  return $ sum values
+  where 
+    safeIndex :: [a] -> Int -> Maybe a
+    safeIndex [] _ = Nothing 
+    safeIndex (x : xs) id
+      | id < 0 = Nothing 
+      | id == 0 = Just x 
+      | otherwise = safeIndex xs (id - 1)
+-- Monad version
+-- selectSum xs is = 
+--   mapM (safeIndex xs) is >>= 
+--     (\values -> return $ sum values)
+--   where 
+--     safeIndex :: [a] -> Int -> Maybe a
+--     safeIndex [] _ = Nothing 
+--     safeIndex (x : xs) id
+--       | id < 0 = Nothing 
+--       | id == 0 = Just x 
+--       | otherwise = safeIndex xs (id - 1)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Here is the Logger monad from the course material. Implement
@@ -129,8 +149,7 @@ safeIndex xs idx =
 -- Examples:
 --   countAndLog even [0,1,2,3,4,5]
 --     ==> Logger ["0","2","4"] 3
-data Logger a =
-  Logger [String] a
+data Logger a = Logger [String] a
   deriving (Show, Eq)
 
 msg :: String -> Logger ()
@@ -141,9 +160,8 @@ instance Functor Logger where
 
 instance Monad Logger where
   return x = Logger [] x
-  Logger la a >>= f = Logger (la ++ lb) b
-    where
-      Logger lb b = f a
+  Logger la a >>= f = Logger (la++lb) b
+    where Logger lb b = f a
 
 -- This is an Applicative instance that works for any monad, you
 -- can just ignore it for now. We'll get back to Applicative later.
@@ -153,14 +171,9 @@ instance Applicative Logger where
 
 countAndLog :: Show a => (a -> Bool) -> [a] -> Logger Int
 countAndLog cond [] = return 0
-countAndLog cond (x:xs)
-  | cond x = do
-    msg (show x)
-    rest <- countAndLog cond xs
-    return (rest + 1)
-  | otherwise = do
-    rest <- countAndLog cond xs
-    return rest
+countAndLog cond (x : xs) 
+  | cond x = msg (show x) >> countAndLog cond xs >>= (\x -> return $ x + 1)
+  | otherwise = countAndLog cond xs 
 
 ------------------------------------------------------------------------------
 -- Ex 5: You can find the Bank and BankOp code from the course
@@ -173,15 +186,12 @@ countAndLog cond (x:xs)
 -- operation shouldn't change the state of the Bank. The functions
 -- from Data.Map are available under the prefix Map.
 exampleBank :: Bank
-exampleBank = (Bank (Map.fromList [("harry", 10), ("cedric", 7), ("ginny", 1)]))
+exampleBank = (Bank (Map.fromList [("harry",10),("cedric",7),("ginny",1)]))
 
 balance :: String -> BankOp Int
-balance accountName = BankOp (checkBalance accountName)
-  where
-    checkBalance accountName (Bank accounts) =
-      let balance = Map.findWithDefault 0 accountName accounts
-       in (balance, Bank accounts)
-
+balance accountName = BankOp balanceHelper 
+  where balanceHelper (Bank accounts) = 
+          (Map.findWithDefault 0 accountName accounts, Bank accounts)
 ------------------------------------------------------------------------------
 -- Ex 6: Using the operations balance, withdrawOp and depositOp, and
 -- chaining (+>), implement the BankOp rob, which transfers all the
@@ -197,7 +207,8 @@ balance accountName = BankOp (checkBalance accountName)
 --   runBankOp (rob "sean" "ginny") exampleBank
 --     ==> ((),Bank (fromList [("cedric",7),("ginny",1),("harry",10)]))
 rob :: String -> String -> BankOp ()
-rob from to = balance from +> withdrawOp from +> depositOp to
+rob from to = balance from +>  
+  (\amount -> withdrawOp from amount +>> depositOp to amount)
 
 ------------------------------------------------------------------------------
 -- Ex 7: using the State monad, write the operation `update` that first
@@ -208,7 +219,7 @@ rob from to = balance from +> withdrawOp from +> depositOp to
 --  runState update 3
 --    ==> ((),7)
 update :: State Int ()
-update = state (\val -> ((), val * 2 + 1))
+update = state (\x -> ((), 2 * x + 1))
 
 ------------------------------------------------------------------------------
 -- Ex 8: Checking that parentheses are balanced with the State monad.
@@ -235,23 +246,17 @@ update = state (\val -> ((), val * 2 + 1))
 --   parensMatch "(()((()))"   ==> False
 --   parensMatch "(()))("      ==> False
 paren :: Char -> State Int ()
-paren c = do
-  cnt <- get
-  case cnt of
-    -1 -> put (-1)
-    _ ->
-      case c of
-        '(' -> put (cnt + 1)
-        ')' ->
-          if cnt > 0
-            then put (cnt - 1)
-            else put (-1)
-        _ -> return () -- Ignore other characters
+paren c = state op 
+  where 
+    op val 
+      | val == -1 = ((), val)
+      | c == '(' = ((), val + 1)
+      | c == ')' = ((), val - 1)
+      | otherwise = ((), val)
 
 parensMatch :: String -> Bool
 parensMatch s = count == 0
-  where
-    (_, count) = runState (mapM_ paren s) 0
+  where (_,count) = runState (mapM_ paren s) 0
 
 ------------------------------------------------------------------------------
 -- Ex 9: using a state of type [(a,Int)] we can keep track of the
@@ -276,16 +281,13 @@ parensMatch s = count == 0
 --    ==> ((),[('a',2),('b',1)])
 --
 -- PS. The order of the list of pairs doesn't matter
-count :: Eq a => a -> State [(a, Int)] ()
-count x = do
-  pairs <- get
-  put $ counterHelper x pairs
-
-counterHelper :: Eq a => a -> [(a, Int)] -> [(a, Int)]
-counterHelper val [] = [(val, 1)]
-counterHelper val ((x, cnt):ps)
-  | val == x = (x, cnt + 1) : ps
-  | otherwise = (x, cnt) : counterHelper val ps
+count :: Eq a => a -> State [(a,Int)] ()
+count x = get >>= (\state -> put $ countpairs x state)
+  where 
+    countpairs x [] = [(x, 1)]
+    countpairs x ((val, cnt) : pairs) 
+      | x == val = (val, cnt + 1) : pairs 
+      | otherwise = (val, cnt) : countpairs x pairs
 
 ------------------------------------------------------------------------------
 -- Ex 10: Implement the operation occurrences, which
@@ -305,8 +307,20 @@ counterHelper val ((x, cnt):ps)
 --    ==> (2,[(True,2),(False,1)])
 --  runState (occurrences [4,7]) [(2,1),(3,1)]
 --    ==> (4,[(2,1),(3,1),(4,1),(7,1)])
-occurrences :: (Eq a) => [a] -> State [(a, Int)] Int
+occurrences :: (Eq a) => [a] -> State [(a,Int)] Int
 occurrences xs = do
-  mapM_ count xs
-  finalState <- get
-  return $ length finalState
+  pairs <- get
+  let newPairs = combine xs pairs
+  put newPairs
+  return (countTotal newPairs)
+  where 
+    countTotal [] = 0
+    countTotal (_ : pairs) = 1 + countTotal pairs
+    
+    combine [] pairs = pairs 
+    combine (x : xs) pairs = combine xs $ putElem x pairs
+    
+    putElem x [] = [(x, 1)]
+    putElem x ((val, cnt) : pairs)
+      | x == val = (val, cnt + 1) : pairs 
+      | otherwise = (val, cnt) : putElem x pairs
