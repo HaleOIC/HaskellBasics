@@ -9,24 +9,26 @@ module Set14b where
 -- Examples/PathServer.hs before jumping into this exercise set.
 --
 -- Let's start with some imports:
-
-import Mooc.Todo
-
 -- Utilities
-import qualified Data.ByteString.Lazy as LB
-import Data.Maybe
-import qualified Data.Text as T
-import qualified Data.Text.Read as TR
-import Data.Text.Encoding (encodeUtf8)
-import Text.Read (readMaybe)
-
 -- HTTP server
-import Network.Wai (pathInfo, responseLBS, Application)
-import Network.Wai.Handler.Warp (run)
-import Network.HTTP.Types (status200)
-
 -- Database
-import Database.SQLite.Simple (open,execute,execute_,query,query_,Connection,Query(..))
+-- HTTP server
+-- Database
+import           Codec.Picture.Metadata   (Value (Int))
+import           Control.Monad            (when)
+import qualified Data.ByteString.Lazy     as LB
+import           Data.Maybe
+import qualified Data.Text                as T
+import           Data.Text.Encoding       (encodeUtf8)
+import qualified Data.Text.Read           as TR
+import           Database.SQLite.Simple   (Connection, Only (Only), Query (..),
+                                           execute, execute_, open, query,
+                                           query_)
+import           Mooc.Todo
+import           Network.HTTP.Types       (status200)
+import           Network.Wai              (Application, pathInfo, responseLBS)
+import           Network.Wai.Handler.Warp (run)
+import           Text.Read                (readMaybe)
 
 ------------------------------------------------------------------------------
 -- Ex 1: Let's start with implementing some database operations. The
@@ -59,29 +61,31 @@ import Database.SQLite.Simple (open,execute,execute_,query,query_,Connection,Que
 --   Set14b> deposit db (T.pack "xxx") 7
 --   Set14b> query_ db getAllQuery :: IO [(String,Int)]
 --   [("xxx",13),("yyy",5),("xxx",7)]
-
-
 initQuery :: Query
-initQuery = Query (T.pack "CREATE TABLE IF NOT EXISTS events (account TEXT NOT NULL, amount NUMBER NOT NULL);")
+initQuery =
+  Query
+    (T.pack
+       "CREATE TABLE IF NOT EXISTS events (account TEXT NOT NULL, amount NUMBER NOT NULL);")
 
 depositQuery :: Query
-depositQuery = Query (T.pack "INSERT INTO events (account, amount) VALUES (?, ?);")
+depositQuery =
+  Query (T.pack "INSERT INTO events (account, amount) VALUES (?, ?);")
 
 getAllQuery :: Query
 getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 
 -- openDatabase should open an SQLite database using the given
 -- filename, run initQuery on it, and produce a database Connection.
---
--- NOTE! Do not add anything to the name, otherwise you'll get weird
--- test failures later.
 openDatabase :: String -> IO Connection
-openDatabase = todo
+openDatabase filename = do
+  db <- open filename
+  execute_ db initQuery
+  return db
 
 -- given a db connection, an account name, and an amount, deposit
 -- should add an (account, amount) row into the database
 deposit :: Connection -> T.Text -> Int -> IO ()
-deposit = todo
+deposit db name amount = execute db depositQuery (name, amount)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Fetching an account's balance. Below you'll find
@@ -107,12 +111,15 @@ deposit = todo
 --   5
 --   Set14b> balance db (T.pack "zzz")
 --   0
-
 balanceQuery :: Query
-balanceQuery = Query (T.pack "SELECT amount FROM events WHERE account = ?;")
+balanceQuery =
+  Query
+    (T.pack "SELECT IFNULL(SUM(amount), 0)    FROM events WHERE account = ?;")
 
 balance :: Connection -> T.Text -> IO Int
-balance = todo
+balance db name = do
+  y <- query db balanceQuery [name] :: IO [[Int]]
+  return (head (head y))
 
 ------------------------------------------------------------------------------
 -- Ex 3: Now that we have the database part covered, let's think about
@@ -143,15 +150,34 @@ balance = todo
 --     ==> Just (Balance "madoff")
 --   parseCommand [T.pack "deposit", T.pack "madoff", T.pack "123456"]
 --     ==> Just (Deposit "madoff" 123456)
-
-data Command = Deposit T.Text Int | Balance T.Text
+data Command
+  = Deposit T.Text Int
+  | Balance T.Text
+  | Withdraw T.Text Int
   deriving (Show, Eq)
 
 parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand = todo
+parseCommand [] = Nothing
+parseCommand [x] = Nothing
+parseCommand path
+  | head path == T.pack "balance" =
+    if length path /= 2
+      then Nothing
+      else Just (T.pack "c") >> Just (Balance (head (tail path)))
+  | head path == T.pack "withdraw" =
+    if length path /= 3
+      then Nothing
+      else Just (T.pack "c") >> parseInt (path !! 2) >>= \x ->
+             Just (Withdraw (path !! 1) x)
+  | head path == T.pack "deposit" =
+    if length path /= 3
+      then Nothing
+      else Just (T.pack "c") >> parseInt (path !! 2) >>= \x ->
+             Just (Deposit (path !! 1) x)
+  | otherwise = Nothing
 
 ------------------------------------------------------------------------------
 -- Ex 4: Running commands. Implement the IO operation perform that takes a
@@ -175,9 +201,13 @@ parseCommand = todo
 --   "777777"
 --   Set14b> perform db (Just (Balance (T.pack "unknown")))
 --   "0"
-
 perform :: Connection -> Maybe Command -> IO T.Text
-perform = todo
+perform db command =
+  case command of
+    Just (Balance b)    -> balance db b >>= \x -> return (T.pack $ show x)
+    Just (Deposit b a)  -> deposit db b a >> return (T.pack "OK")
+    Just (Withdraw b a) -> deposit db b (-1 * a) >> return (T.pack "OK")
+    Nothing             -> return (T.pack "ERROR")
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
@@ -190,14 +220,14 @@ perform = todo
 -- Example:
 --   - In GHCi: run 8899 simpleServer
 --   - Go to <http://localhost:8899> in your browser, you should see the text BANK
-
 encodeResponse :: T.Text -> LB.ByteString
 encodeResponse t = LB.fromStrict (encodeUtf8 t)
 
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 simpleServer :: Application
-simpleServer request respond = todo
+simpleServer request respond =
+  respond (responseLBS status200 [] (encodeResponse $ T.pack "BANK"))
 
 ------------------------------------------------------------------------------
 -- Ex 6: Now we finally have all the pieces we need to actually
@@ -222,11 +252,13 @@ simpleServer request respond = todo
 --     You should see the text OK.
 --   - Open <http://localhost:3421/balance/lopez> in your browser.
 --     You should see the text 25.
-
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 server :: Connection -> Application
-server db request respond = todo
+server db request respond = do
+  let q = pathInfo request
+  res <- perform db (parseCommand q)
+  respond (responseLBS status200 [] (encodeResponse res))
 
 port :: Int
 port = 3421
@@ -237,7 +269,6 @@ main = do
   putStr "Running on port: "
   print port
   run port (server db)
-
 ------------------------------------------------------------------------------
 -- Ex 7: Add the possibility to withdraw funds to the API. Withdrawing
 -- should happen via a /withdraw/<account>/<amount> path, similarly to
@@ -256,8 +287,6 @@ main = do
 --     You should see the text OK.
 --   - Open <http://localhost:3421/balance/simon> in your browser.
 --     You should see the text 11.
-
-
 ------------------------------------------------------------------------------
 -- Ex 8: Error handling. Modify the parseCommand function so that it
 -- returns Nothing when the input is not valid. Modify the perform
@@ -276,5 +305,3 @@ main = do
 --    - http://localhost:3421/deposit/pekka/1/3
 --    - http://localhost:3421/balance
 --    - http://localhost:3421/balance/matti/pekka
-
-
