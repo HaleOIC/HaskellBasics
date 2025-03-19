@@ -57,3 +57,6 @@ Here are some fixes for common problems with `stack build`:
 If you notice an error in these materials, you can report it via
 - an issue or pull request in this repository (see [CONTRIBUTING.md](CONTRIBUTING.md))
 - the course [channel on Telegram](https://t.me/haskell_mooc_fi)
+
+
+![alt text](image.png)
