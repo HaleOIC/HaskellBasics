@@ -59,4 +59,4 @@ If you notice an error in these materials, you can report it via
 - the course [channel on Telegram](https://t.me/haskell_mooc_fi)
 
 
-![alt text](image.png)
+![alt text](./img/image.png)
